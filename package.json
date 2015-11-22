@@ -1,0 +1,40 @@
+{
+  "name": "sprintf",
+  "version": "1.0.0",
+  "description": "",
+  "main": "sprintf.js",
+  "scripts": {
+    "start": "babel-node sprintf.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "Public Domain",
+  "babel": {
+    "plugins": [
+      "syntax-class-properties",
+      "syntax-object-rest-spread",
+      "transform-class-properties",
+      "transform-es2015-arrow-functions",
+      "transform-es2015-classes",
+      "transform-es2015-for-of",
+      "transform-es2015-parameters",
+      "transform-es2015-spread",
+      "transform-es2015-sticky-regex",
+      "transform-es2015-template-literals",
+      "transform-object-rest-spread"
+    ]
+  },
+  "devDependencies": {
+    "babel-plugin-syntax-class-properties": "^6.1.18",
+    "babel-plugin-syntax-object-rest-spread": "^6.1.18",
+    "babel-plugin-transform-class-properties": "^6.2.2",
+    "babel-plugin-transform-es2015-arrow-functions": "^6.1.18",
+    "babel-plugin-transform-es2015-classes": "^6.2.2",
+    "babel-plugin-transform-es2015-for-of": "^6.1.18",
+    "babel-plugin-transform-es2015-parameters": "^6.1.18",
+    "babel-plugin-transform-es2015-spread": "^6.1.18",
+    "babel-plugin-transform-es2015-sticky-regex": "^6.1.18",
+    "babel-plugin-transform-es2015-template-literals": "^6.1.18",
+    "babel-plugin-transform-object-rest-spread": "^6.1.18"
+  }
+}
