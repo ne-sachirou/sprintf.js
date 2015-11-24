@@ -4,7 +4,7 @@
   "description": "",
   "main": "sprintf.js",
   "scripts": {
-    "start": "babel-node sprintf.js",
+    "start": "babel-node .",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",

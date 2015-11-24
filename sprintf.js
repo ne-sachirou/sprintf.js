@@ -1,3 +1,4 @@
+// https://gist.github.com/ne-sachirou/0d7da119dd4a8a323842
 (function (global) {
 'use strict';
 
@@ -54,11 +55,15 @@ Formatter.PATTERNS = [
       switch (conversionSpecifier) {
         case 'd': case 'i':
           {
-            if (isFlagLeft) {
+            if (isFlagLeft && isFlag0) {
               isFlag0 = false;
+              isFlagSpace = true;
             }
             if (isFlag0) {
               isFlagSpace = false;
+            }
+            if (null === precision) {
+              precision = 1;
             }
             let value = formatter._values[formatter._indexOfValues];
             if ('string' === typeof value || value instanceof String) {
@@ -95,6 +100,32 @@ Formatter.PATTERNS = [
             ++formatter._indexOfValues;
             break;
           }
+        case 'o':
+          break;
+        case 'u':
+          break;
+        case 'x':
+          break;
+        case 'X':
+          break;
+        case 'e':
+          break;
+        case 'E':
+          break;
+        case 'f':
+          break;
+        case 'F':
+          break;
+        case 'g':
+          break;
+        case 'G':
+          break;
+        case 'a':
+          break;
+        case 'A':
+          break;
+        case 'c':
+          break;
         case 's':
           {
             let resultLeft  = '';
@@ -111,6 +142,12 @@ Formatter.PATTERNS = [
             ++formatter._indexOfValues;
             break;
           }
+        case 'p':
+          break;
+        case 'n':
+          break;
+        case 'm':
+          break;
         case '%':
           formatter._result += '%';
           break;
@@ -126,7 +163,11 @@ function sprintf(format, ...values) {
   return new Formatter(format, values).format();
 }
 
-global.sprintf = sprintf;
+function strftime(date, format) {
+}
+
+global.sprintf  = sprintf;
+global.strftime = strftime;
 }(/*(module && module.exports) || */(this || 0).self || global));
 
 const DEBUG = true;
@@ -137,13 +178,12 @@ if (DEBUG) {
   // http://linuxjm.osdn.jp/html/LDP_man-pages/man3/printf.3.html
   function test(format, ...values) {
     var actual   = sprintf(format, ...values);
-    var expected = cp.execSync(`printf "${format}" ${values.map((v) => `"${v}"`).join(' ')}`).toString();
+    var expected = cp.execSync(`printf ${[format, ...values].map((v) => `"${v}"`).join(' ')}`).toString();
     try {
       assert.strictEqual(actual, expected);
     } catch (ex) {
       console.log(Array.from(arguments));
       console.error(ex);
-      return;
     }
   }
 
@@ -153,9 +193,21 @@ if (DEBUG) {
   test('%d', '011');
   test('%d', '0x11');
   test('%06d', 1234);
-  test('%02d', -9);
-  test('%+02d', 9);
-  test('%+02d', -9);
+  test('% 6d', 1234);
+  test('%-06d', 1234);
+  test('%- 6d', 1234);
+  test('%04d', -9);
+  test('%+04d', 9);
+  test('%+04d', -9);
+  test('% 4d', -9);
+  test('%+ 4d', 9);
+  test('%+ 4d', -9);
+  test('%-04d', -9);
+  test('%-+04d', 9);
+  test('%-+04d', -9);
+  test('%- 4d', -9);
+  test('%-+ 4d', 9);
+  test('%-+ 4d', -9);
 
   test('a %s b', 'and');
   test('% 5s', 'ne');
