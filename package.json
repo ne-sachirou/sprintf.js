@@ -35,6 +35,8 @@
     "babel-plugin-transform-es2015-spread": "^6.1.18",
     "babel-plugin-transform-es2015-sticky-regex": "^6.1.18",
     "babel-plugin-transform-es2015-template-literals": "^6.1.18",
-    "babel-plugin-transform-object-rest-spread": "^6.1.18"
+    "babel-plugin-transform-object-rest-spread": "^6.1.18",
+    "mustache": "^2.2.0",
+    "permute": "^1.0.0"
   }
 }

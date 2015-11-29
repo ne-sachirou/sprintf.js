@@ -1,10 +1,12 @@
+// vim:set fdm=marker:
 // https://gist.github.com/ne-sachirou/0d7da119dd4a8a323842
 (function (global) {
 'use strict';
 
 class Evaluator {
-  constructor(patterns) {
-    this.patterns = patterns;
+  patterns = [];
+
+  constructor() {
     this._init();
   }
 
@@ -32,34 +34,28 @@ class Evaluator {
   }
 }
 
+// {{{ !sprintf
 class SprintfEvaluator extends Evaluator {
-  _init() {
-    super._init();
-    this._indexOfValues = 0;
-  }
-}
-
-var sprintfEvaluator = new SprintfEvaluator(
-  [
+  patterns = [
     [
       /[^%]+/g,
       (match) => match[0],
     ],
     [
-      /%([-#0 +'l]*)(\d*)(\.\d*)?(hh|h|l|ll|L|j|z|t)?([diouxXeEfFgGaAcspnm%])/g,
+      /%([-#0 +'l]+)?(\d+)?(\.\d*)?(hh|h|l|ll|L|j|z|t)?([diouxXeEfFgGaAcspnm%])/g,
       function (match, values) {
-        var flags               = match[1];
-        var fieldWidth          = match[2];
-        var precision           = match[3];
+        var flags               = match[1] || '';
+        var fieldWidth          = match[2] ? parseInt(match[2], 10) : 0;
+        var precision           = match[3] ? parseInt(match[3].slice(1), 10) : null;
         var lengthModifier      = match[4];
         var conversionSpecifier = match[5];
-        var isFlagSwitch = -1 !== flags.indexOf('#');
-        var isFlag0      = -1 !== flags.indexOf('0');
-        var isFlagLeft   = -1 !== flags.indexOf('-');
-        var isFlagSpace  = -1 !== flags.indexOf(' ');
-        var isFlagSign   = -1 !== flags.indexOf('+');
-        var isFlagMoney  = -1 !== flags.indexOf("'");
-        var isFlagLocal  = -1 !== flags.indexOf('l');
+        var isFlagSwitch = flags.includes('#');
+        var isFlag0      = flags.includes('0');
+        var isFlagLeft   = flags.includes('-');
+        var isFlagSpace  = flags.includes(' ');
+        var isFlagSign   = flags.includes('+');
+        var isFlagMoney  = flags.includes("'");
+        var isFlagLocal  = flags.includes('l');
         switch (conversionSpecifier) {
           case 'd': case 'i':
             {
@@ -67,22 +63,21 @@ var sprintfEvaluator = new SprintfEvaluator(
                 isFlag0 = false;
                 isFlagSpace = true;
               }
-              if (isFlag0) {
-                isFlagSpace = false;
-              }
               if (null === precision) {
                 precision = 1;
               }
               let value = values[this._indexOfValues];
               ++this._indexOfValues;
               if ('string' === typeof value || value instanceof String) {
-                if (value.startsWith('0x')) {
-                  value = parseInt(value, 16);
+                let base = 10;
+                if (value.startsWith('0b')) {
+                  base = 2;
+                } else if (value.startsWith('0x')) {
+                  base = 16;
                 } else if ('0' === value[0]) {
-                  value = parseInt(value, 8);
-                } else {
-                  value = parseInt(value, 10);
+                  base = 8;
                 }
+                value = parseInt(value, base);
               } else {
                 value = ~~Number(value);
               }
@@ -94,16 +89,20 @@ var sprintfEvaluator = new SprintfEvaluator(
               if (value < 0 || isFlagSign) {
                 resultSign = value < 0 ? '-' : '+';
               }
-              let mainLength = resultSign.length + resultBody.length;
-              if (isFlagSpace && fieldWidth > mainLength) {
-                if (!isFlagLeft) {
-                  resultLeftSpace = ' '.repeat(fieldWidth - mainLength);
-                } else {
-                  resultRight = ' '.repeat(fieldWidth - mainLength);
-                }
+              if (isFlagSpace && !resultSign) {
+                resultLeftSpace = ' ';
               }
-              if (isFlag0 && fieldWidth > mainLength) {
-                resultLeft0 = '0'.repeat(fieldWidth - mainLength);
+              let mainLength = resultLeftSpace.length + resultSign.length + resultBody.length;
+              if (fieldWidth > mainLength) {
+                if (isFlagLeft) {
+                  resultRight = (isFlag0 ? '0' : ' ').repeat(fieldWidth - mainLength);
+                } else {
+                  if (isFlag0) {
+                    resultLeft0 = '0'.repeat(fieldWidth - mainLength);
+                  } else {
+                    resultLeftSpace += ' '.repeat(fieldWidth - mainLength);
+                  }
+                }
               }
               return resultLeftSpace + resultSign + resultLeft0 + resultBody + resultRight;
             }
@@ -139,8 +138,8 @@ var sprintfEvaluator = new SprintfEvaluator(
               let resultBody  = values[this._indexOfValues].toString();
               let resultRight = '';
               ++this._indexOfValues;
-              if (isFlag0 || isFlagSpace) {
-                if (isFlagLeft && fieldWidth > resultBody.length) {
+              if (fieldWidth > resultBody.length) {
+                if (isFlagLeft) {
                   resultRight = ' '.repeat(fieldWidth - resultBody.length);
                 } else {
                   resultLeft = ' '.repeat(fieldWidth - resultBody.length);
@@ -161,15 +160,30 @@ var sprintfEvaluator = new SprintfEvaluator(
         }
       }
     ],
-  ]
-);
+  ];
 
-function sprintf(format, ...values) {
-  return sprintfEvaluator.evaluate(format, values);
+  constructor() {
+    super();
+  }
+
+  _init() {
+    super._init();
+    this._indexOfValues = 0;
+  }
 }
 
-var strftimeEvaluator = new Evaluator(
-  [
+function sprintf(format, ...values) {
+  return sprintf.evaluator.evaluate(format, values);
+}
+
+sprintf.evaluator = new SprintfEvaluator();
+
+global.sprintf  = sprintf;
+// }}} !sprintf
+
+// {{{ !strftime
+class StrftimeEvaluator extends Evaluator {
+  patterns = [
     [
       /[^%]+/g,
       (match) => match[0]
@@ -184,61 +198,130 @@ var strftimeEvaluator = new Evaluator(
         }
       }
     ],
-  ]
-);
+  ];
 
-function strftime(format, date) {
-  return strftimeEvaluator.evaluate(format, [date]);
+  constructor() {
+    super();
+  }
 }
 
-global.sprintf  = sprintf;
+function strftime(format, date) {
+  return strftime.evaluator.evaluate(format, [date]);
+}
+
+strftime.evaluator = new StrftimeEvaluator();
+
 global.strftime = strftime;
+// }}} !strftime
 }(/*(module && module.exports) || */(this || 0).self || global));
 
-const DEBUG = true;
-if (DEBUG) {
-  var assert = require('assert');
-  var cp     = require('child_process');
+// {{{ !debug
+(function () {
+'use strict';
 
-  // http://linuxjm.osdn.jp/html/LDP_man-pages/man3/printf.3.html
-  function test(format, ...values) {
-    var actual   = sprintf(format, ...values);
-    var expected = cp.execSync(`printf ${[format, ...values].map((v) => `"${v}"`).join(' ')}`).toString();
-    try {
-      assert.strictEqual(actual, expected);
-    } catch (ex) {
-      console.log(Array.from(arguments));
-      console.error(ex);
+var assert   = require('assert');
+var cp       = require('child_process');
+var fs       = require('fs');
+var Mustache = require('mustache');
+var permute  = require('permute');
+var util     = require('util');
+
+const FLAG_SETS = (function () {
+  function push() {
+    for (let i = 2, iz = flags.length - 1; i <= iz; ++i) {
+      let set = flags.slice(0, i).sort().join('');
+      if (!sets.includes(set)) {
+        sets.push(set);
+      }
     }
   }
 
-  test('string');
+  var flags = ['-', '#', '0', ' ', '+', "'", 'l'];
+  var sets = [''];
+  for (let flag of flags) {
+    sets.push(flag);
+  }
+  sets.push(flags.join(''));
+  flags = flags.sort();
+  push();
+  while (permute(flags)) {
+    push();
+  }
+  return sets.sort((l, r) => l.length - r.length);
+}());
 
-  test('P%dd', 3);
-  test('%d', '011');
-  test('%d', '0x11');
-  test('%06d', 1234);
-  test('% 6d', 1234);
-  test('%-06d', 1234);
-  test('%- 6d', 1234);
-  test('%04d', -9);
-  test('%+04d', 9);
-  test('%+04d', -9);
-  test('% 4d', -9);
-  test('%+ 4d', 9);
-  test('%+ 4d', -9);
-  test('%-04d', -9);
-  test('%-+04d', 9);
-  test('%-+04d', -9);
-  test('%- 4d', -9);
-  test('%-+ 4d', 9);
-  test('%-+ 4d', -9);
-
-  test('a %s b', 'and');
-  test('% 5s', 'ne');
-  test('%05s', 'ne');
-  test('%- 5s', 'ne');
-  test('%-05s', 'ne');
-
-  test('%%');
+function test(format, ...values) {
+  if (!test.startAt) {
+    test.startAt = Date.now();
+  }
+  var actual   = sprintf(format, ...values);
+  fs.writeFileSync(
+    'printf.c',
+    Mustache.render(
+      fs.readFileSync('printf.c.mustache', {encoding: 'utf8'}),
+      {
+        args: [format, ...values].map((v) => {
+            if ('number' === typeof v || v instanceof Number || /^(?:\d+)|(?:0[bx][\da-zA-Z]+)$/.test(v)) {
+              return '' + v;
+            }
+            return `"${v}"`
+          }).join(','),
+      }
+    )
+  );
+  cp.execSync('clang -o printf printf.c');
+  var expected = cp.execSync('./printf').toString();
+  try {
+    assert.strictEqual(actual, expected);
+  } catch (ex) {
+    console.error(`Actual:  \t${util.inspect(ex.actual)}\nExpected:\t${util.inspect(ex.expected)}\n\tArguments:\t${util.inspect(Array.from(arguments))}\n`);
+    test.result.push(false);
+    return;
+  }
+  test.endAt = Date.now();
+  test.result.push(true);
 }
+test.startAt = null;
+test.endAt   = null;
+test.result  = [];
+test.printResult = function () {
+  console.log(`${(test.endAt - test.startAt) / 1000} sec`);
+  console.log(`${test.result.filter((r) => r).length}/${test.result.length} passed`);
+  console.log(test.result.map((r) => r ? '.' : 'F').join(''));
+};
+
+test('string');
+
+//test('%d', '0b10011010010');
+test('%d', '02322');
+test('%d', '0x4d2');
+FLAG_SETS.
+  filter((set) => {
+    if (set.includes('#') || set.includes('l')) {
+      return false;
+    }
+    if (set.includes(' ') && set.includes('+')) {
+      return false;
+    }
+    if (set.includes('0') && set.includes('-')) {
+      return false;
+    }
+    return true;
+  }).
+  forEach((set) => {
+    test(`%${set}d` , 1234);
+    test(`%${set}d` , -1234);
+    test(`%${set}8d`, 1234);
+    test(`%${set}8d`, -1234);
+  });
+
+test('a %s b', 'and');
+test('%s and %s', 'a', 'b');
+test('%4s', 'yu');
+test('%-4s', 'yu');
+
+test('%%');
+
+test.printResult();
+}());
+// }}} !debug
