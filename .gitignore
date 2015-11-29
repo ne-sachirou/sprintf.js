@@ -1,3 +1,4 @@
 node_modules
 printf
 printf.c
+*.min.js

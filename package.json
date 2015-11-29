@@ -10,6 +10,7 @@
   "author": "",
   "license": "Public Domain",
   "babel": {
+    "compact": true,
     "plugins": [
       "syntax-class-properties",
       "syntax-object-rest-spread",
@@ -17,6 +18,7 @@
       "transform-es2015-arrow-functions",
       "transform-es2015-classes",
       "transform-es2015-for-of",
+      "transform-es2015-modules-commonjs",
       "transform-es2015-parameters",
       "transform-es2015-spread",
       "transform-es2015-sticky-regex",
@@ -25,12 +27,14 @@
     ]
   },
   "devDependencies": {
+    "babel-core": "^6.2.1",
     "babel-plugin-syntax-class-properties": "^6.1.18",
     "babel-plugin-syntax-object-rest-spread": "^6.1.18",
     "babel-plugin-transform-class-properties": "^6.2.2",
     "babel-plugin-transform-es2015-arrow-functions": "^6.1.18",
     "babel-plugin-transform-es2015-classes": "^6.2.2",
     "babel-plugin-transform-es2015-for-of": "^6.1.18",
+    "babel-plugin-transform-es2015-modules-commonjs": "^6.2.0",
     "babel-plugin-transform-es2015-parameters": "^6.1.18",
     "babel-plugin-transform-es2015-spread": "^6.1.18",
     "babel-plugin-transform-es2015-sticky-regex": "^6.1.18",
