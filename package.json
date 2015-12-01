@@ -12,6 +12,7 @@
   "babel": {
     "compact": true,
     "plugins": [
+      "syntax-async-functions",
       "syntax-class-properties",
       "syntax-object-rest-spread",
       "transform-class-properties",
@@ -23,11 +24,13 @@
       "transform-es2015-spread",
       "transform-es2015-sticky-regex",
       "transform-es2015-template-literals",
-      "transform-object-rest-spread"
+      "transform-object-rest-spread",
+      "transform-regenerator"
     ]
   },
   "devDependencies": {
     "babel-core": "^6.2.1",
+    "babel-plugin-syntax-async-functions": "^6.1.18",
     "babel-plugin-syntax-class-properties": "^6.1.18",
     "babel-plugin-syntax-object-rest-spread": "^6.1.18",
     "babel-plugin-transform-class-properties": "^6.2.2",
@@ -40,7 +43,9 @@
     "babel-plugin-transform-es2015-sticky-regex": "^6.1.18",
     "babel-plugin-transform-es2015-template-literals": "^6.1.18",
     "babel-plugin-transform-object-rest-spread": "^6.1.18",
+    "babel-plugin-transform-regenerator": "^6.2.0",
     "mustache": "^2.2.0",
+    "node-uuid": "^1.4.7",
     "permute": "^1.0.0"
   }
 }

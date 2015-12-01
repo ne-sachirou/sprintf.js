@@ -3,29 +3,13 @@
 
 import * as babel from 'babel-core';
 import fs         from 'fs';
+import primisify  from './promisify';
 
 const COMPONENTS = {
   sprintf : true,
   strftime: false,
   debug   : false,
 };
-
-function promisify(func) {
-  return function (...args) {
-    var me = this;
-    return new Promise((resolve, reject) => {
-      function done(err, ...args) {
-        if (err) {
-          return reject(err);
-        }
-        resolve.apply(me, args);
-      }
-
-      args.push(done);
-      func.apply(me, args);
-    });
-  };
-}
 
 Promise.all([
     promisify(fs.readFile)('sprintf.js', {encoding: 'utf8'}),

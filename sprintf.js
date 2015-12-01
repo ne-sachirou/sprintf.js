@@ -219,12 +219,14 @@ global.strftime = strftime;
 (function () {
 'use strict';
 
-var assert   = require('assert');
-var cp       = require('child_process');
-var fs       = require('fs');
-var Mustache = require('mustache');
-var permute  = require('permute');
-var util     = require('util');
+var assert    = require('assert');
+var cp        = require('child_process');
+var fs        = require('fs');
+var Mustache  = require('mustache');
+var permute   = require('permute');
+var promisify = require('./promisify');
+var util      = require('util');
+var uuid      = require('node-uuid');
 
 const FLAG_SETS = (function () {
   function push() {
@@ -237,10 +239,7 @@ const FLAG_SETS = (function () {
   }
 
   var flags = ['-', '#', '0', ' ', '+', "'", 'l'];
-  var sets = [''];
-  for (let flag of flags) {
-    sets.push(flag);
-  }
+  var sets = [''].concat(flags);
   sets.push(flags.join(''));
   flags = flags.sort();
   push();
@@ -251,48 +250,68 @@ const FLAG_SETS = (function () {
 }());
 
 function test(format, ...values) {
-  if (!test.startAt) {
-    test.startAt = Date.now();
+  function calcExpected() {
+    var expected;
+    var tmpId = uuid.v4();
+    return promisify(fs.readFile)('printf.c.mustache', {encoding: 'utf8'}).
+      then((c) => {
+        c = Mustache.render(
+          c,
+          {
+            args: [format, ...values].map((v) => {
+                if ('number' === typeof v || v instanceof Number || /^(?:\d+)|(?:0[bx][\da-zA-Z]+)$/.test(v)) {
+                  return '' + v;
+                }
+                return `"${v}"`
+              }).join(','),
+          }
+        )
+        return promisify(fs.writeFile)(`printf-${tmpId}.c`, c);
+      }).
+      then(() => promisify(cp.exec)(`clang -o printf-${tmpId} printf-${tmpId}.c`)).
+      then(() => promisify(cp.exec)(`./printf-${tmpId}`)).
+      then((v) => expected = v[0].toString()).
+      then(() => promisify(fs.unlink)(`printf-${tmpId}`)).
+      then(() => promisify(fs.unlink)(`printf-${tmpId}.c`)).
+      then(() => expected).
+      catch((err) => console.error(err));
   }
-  var actual   = sprintf(format, ...values);
-  fs.writeFileSync(
-    'printf.c',
-    Mustache.render(
-      fs.readFileSync('printf.c.mustache', {encoding: 'utf8'}),
-      {
-        args: [format, ...values].map((v) => {
-            if ('number' === typeof v || v instanceof Number || /^(?:\d+)|(?:0[bx][\da-zA-Z]+)$/.test(v)) {
-              return '' + v;
-            }
-            return `"${v}"`
-          }).join(','),
-      }
-    )
-  );
-  cp.execSync('clang -o printf printf.c');
-  var expected = cp.execSync('./printf').toString();
-  try {
-    assert.strictEqual(actual, expected);
-  } catch (ex) {
-    console.error(`Actual:  \t${util.inspect(ex.actual)}\nExpected:\t${util.inspect(ex.expected)}\n\tArguments:\t${util.inspect(Array.from(arguments))}\n`);
-    test.result.push(false);
-    return;
-  }
-  test.endAt = Date.now();
-  test.result.push(true);
+
+  var promise = new Promise(async (resolve, reject) => {
+    if (!test.startAt) {
+      test.startAt = Date.now();
+    }
+    var actual   = sprintf(format, ...values);
+    var expected = await calcExpected();
+    try {
+      assert.strictEqual(actual, expected);
+    } catch (ex) {
+      console.error(`Actual:  \t${util.inspect(ex.actual)}\nExpected:\t${util.inspect(ex.expected)}\n\tArguments:\t${util.inspect(Array.from(arguments))}\n`);
+      test.endAt = Date.now();
+      test.result.push(false);
+      return resolve();
+    }
+    test.endAt = Date.now();
+    test.result.push(true);
+    resolve();
+  });
+  test.promises.push(promise);
+  return promise;
 }
-test.startAt = null;
-test.endAt   = null;
-test.result  = [];
+test.startAt  = null;
+test.endAt    = null;
+test.promises = [];
+test.result   = [];
 test.printResult = function () {
-  console.log(`${(test.endAt - test.startAt) / 1000} sec`);
-  console.log(`${test.result.filter((r) => r).length}/${test.result.length} passed`);
-  console.log(test.result.map((r) => r ? '.' : 'F').join(''));
+  Promise.all(test.promises).then(() => {
+    console.log(`${(test.endAt - test.startAt) / 1000} sec`);
+    console.log(`${test.result.filter((r) => r).length}/${test.result.length} passed`);
+    console.log(test.result.map((r) => r ? '.' : 'F').join(''));
+  });
 };
 
 test('string');
 
-//test('%d', '0b10011010010');
 test('%d', '02322');
 test('%d', '0x4d2');
 FLAG_SETS.
